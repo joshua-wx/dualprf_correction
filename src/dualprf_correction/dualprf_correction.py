@@ -17,7 +17,7 @@ Correct dual-PRF dealiasing errors
 """
 
 
-def correct_dualprf(
+def process_pyodim(
     dataset,
     vel_field="velocity",
     kernel_det=np.ones((7, 7)),
@@ -61,11 +61,11 @@ def correct_dualprf(
     n_sweeps = len(dataset) - 1
 
     for sweep_idx in reversed(list(range(n_sweeps))):
-        print("sweep", sweep_idx, "elevation:", dataset[sweep_idx].elevation.values[0])
+        #print("sweep", sweep_idx, "elevation:", dataset[sweep_idx].elevation.values[0])
         # Skip sweeps without PRT information (single PRF)
         prt = dataset[sweep_idx].prt
         if prt is None:
-            print("  Skipping sweep - not dual-PRF")
+            #print("  Skipping sweep - not dual-PRF")
             continue
 
         # Dual-PRF parameters
@@ -81,7 +81,6 @@ def correct_dualprf(
 
         # primary velocities
         vel_primary = v_ny / prf_factor
-        print(vel_primary)
         # extract velocity sweep
         vel_data = np.ma.masked_invalid(dataset[sweep_idx][vel_field].values)
 
@@ -112,7 +111,7 @@ def correct_dualprf(
                 data_ma=vel_data,
                 kernel=kernel_cor,
                 v_ny=v_ny,
-                mask=err_mask,
+                mask=err_mask.astype(bool),
                 min_valid=min_valid_cor,
             )
 
@@ -381,9 +380,9 @@ def _vel_ref(data_ma, kernel=np.ones((5, 5)), v_ny=None, mask=None, min_valid=1)
     # Mask gates which do not have a minimum number of neighbours
     valid_num_arr = ndimage.convolve((~mask).astype(int), kernel, mode="constant", cval=0)
     nmin_mask = np.zeros(mask.shape)
-    nmin_mask[valid_num_arr < min_th] = 1
+    nmin_mask[valid_num_arr < min_valid] = 1
     
-    new_mask = np.ma.mask_or(data_ma.mask, nmin_mask)
+    new_mask = np.ma.mask_or(data_ma.mask, nmin_mask.astype(bool))
 
     ph_arr = vel_ma * (np.pi / v_ny)
 

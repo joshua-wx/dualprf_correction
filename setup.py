@@ -17,12 +17,12 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="dualprf_correction",
-    version="1.0.0",
+    version="0.0.1",
     description="Correction of dual PRF artefacts.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/joshua-wx/dualprf_correction",
-    author="Meteocat",    
+    author="Meteocat and Joshua Soderholm",    
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[  # Optional
         "Development Status :: 5 - Production/Stable",
@@ -35,7 +35,9 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     keywords="radar weather meteorology correction",
-    packages=find_packages(exclude=["examples", "sample_data", "tests"]),
     install_requires=["numpy", "pyodim", "scipy"],
+    python_requires='>=3.9',
+    package_dir = {'': 'src'},
+    packages=['dualprf_correction'],
     project_urls={"Source": "https://github.com/joshua-wx/dualprf_correction/",},
 )
