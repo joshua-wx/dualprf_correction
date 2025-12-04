@@ -2,18 +2,9 @@ import numpy as np
 from scipy import ndimage
 
 """
-dualprf_cor
+dualporf_correction
 ===========
 Correct dual-PRF dealiasing errors
-
-    correct_dualprf
-    fold_circular
-    local_cmean
-    local_mean
-    _dualprf_error_unwrap
-    _dummy_cols
-    _prf_factor_array
-    _vel_ref
 """
 
 
