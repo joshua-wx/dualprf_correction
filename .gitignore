@@ -18,7 +18,7 @@ __pycache__/
 ./examples/__pycache__/
 build/
 dist/
-vcor_dual_prf.egg_info/
+dualprf_correction/.egg_info/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

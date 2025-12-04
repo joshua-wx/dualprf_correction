@@ -16,12 +16,12 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="vcor_dual_prf",
+    name="dualprf_correction",
     version="1.0.0",
-    description="Correction .",
+    description="Correction of dual PRF artefacts.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/paltube/vcor_dual_prf",
+    url="https://github.com/joshua-wx/dualprf_correction",
     author="Meteocat",    
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[  # Optional
@@ -36,6 +36,6 @@ setup(
     ],
     keywords="radar weather meteorology correction",
     packages=find_packages(exclude=["examples", "sample_data", "tests"]),
-    install_requires=["numpy", "arm_pyart", "h5py", "scipy"],
-    project_urls={"Source": "https://github.com/paltube/vcor_dual_prf/",},
+    install_requires=["numpy", "pyodim" "scipy"],
+    project_urls={"Source": "https://github.com/joshua-wx/dualprf_correction/",},
 )
