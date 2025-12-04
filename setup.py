@@ -36,6 +36,6 @@ setup(
     ],
     keywords="radar weather meteorology correction",
     packages=find_packages(exclude=["examples", "sample_data", "tests"]),
-    install_requires=["numpy", "pyodim" "scipy"],
+    install_requires=["numpy", "pyodim", "scipy"],
     project_urls={"Source": "https://github.com/joshua-wx/dualprf_correction/",},
 )

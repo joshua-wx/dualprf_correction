@@ -8,20 +8,12 @@ Correct dual-PRF dealiasing errors
 
     correct_dualprf
     fold_circular
-    instrument_parameters_odimh5
     local_cmean
     local_mean
-    local_median
-    local_valid
     _dualprf_error_unwrap
     _dummy_cols
-    _get_prf_pars
-    _get_prf_pars_odimh5
-    _mask_diff_above
-    _min_valid_mask
     _prf_factor_array
     _vel_ref
-    _vref_cmean_sc
 """
 
 
@@ -111,7 +103,9 @@ def correct_dualprf(
         diff_ma = (v_ny / np.pi) * np.ma.arctan2(np.ma.sin(ph_diff), np.ma.cos(ph_diff))
 
         # Outlier mask
-        err_mask = _mask_diff_above(diff_ma=diff_ma, th_ma=max_dev * vel_primary)
+        err_mask = np.zeros(diff_ma.shape)
+        err_mask[np.ma.abs(diff_ma) > (max_dev*vel_primary)] = 1
+        err_mask[diff_ma.mask] = 0
 
         if two_step:
             vref_cor = _vel_ref(
@@ -256,26 +250,6 @@ def local_mean(data, mask, kernel):
     return avg_ma
 
 
-def local_valid(mask, kernel=np.ones((3, 3))):
-    """
-    Calculate number of local neighbours with a valid value
-
-    Parameters
-    ----------
-    mask : numpy array (2D)
-        Boolean label (1/0) indicating non NA gate values.
-    kernel : numpy array (2D)
-        Convolution kernel indicating which local neighbours to consider
-
-    Returns
-    -------
-    valid : numpy array (2D)  of int
-        Number of valid neighbours for each gate.
-    """
-    valid = ndimage.convolve((~mask).astype(int), kernel, mode="constant", cval=0)
-    return valid.astype(int)
-
-
 def _dualprf_error_unwrap(data_ma, ref_ma, err_mask, pvel_arr, prf_arr):
     """
     Finds the correction factor that minimises the difference between
@@ -373,47 +347,6 @@ def pad_in_range(data, kernel=np.ones((3, 3)), value=None):
 
     return col_num, data_out
 
-
-def _mask_diff_above(diff_ma, th_ma):
-    """
-    Creates a mask of the values which differ from a reference more
-    than a specified threshold
-
-    Parameters
-    ----------
-    diff_ma : masked array
-        Data
-    th_ma :  masked array
-        Threshold values
-
-     Returns
-     -------
-     mask : numpy bool mask
-         Masked above threshold
-
-    """
-
-    mask = np.zeros(diff_ma.shape)
-
-    mask[np.ma.abs(diff_ma) > th_ma] = 1
-    mask[diff_ma.mask] = 0
-
-    return mask.astype(bool)
-
-
-def _min_valid_mask(mask, kernel, min_th=1):
-    """
-    Mask for gates that do not have a minimum number of valid neighbours
-
-    """
-
-    valid_num_arr = local_valid(mask, kernel)
-    nmin_mask = np.zeros(mask.shape)
-    nmin_mask[valid_num_arr < min_th] = 1
-
-    return nmin_mask.astype(bool)
-
-
 def _vel_ref(data_ma, kernel=np.ones((5, 5)), v_ny=None, mask=None, min_valid=1):
     """
     Estimate reference velocity using different local statistics:
@@ -446,7 +379,10 @@ def _vel_ref(data_ma, kernel=np.ones((5, 5)), v_ny=None, mask=None, min_valid=1)
     vel_ma = np.ma.array(data=data_ma.data, mask=mask)
 
     # Mask gates which do not have a minimum number of neighbours
-    nmin_mask = _min_valid_mask(data_ma.mask, kernel=kernel, min_th=min_valid)
+    valid_num_arr = ndimage.convolve((~mask).astype(int), kernel, mode="constant", cval=0)
+    nmin_mask = np.zeros(mask.shape)
+    nmin_mask[valid_num_arr < min_th] = 1
+    
     new_mask = np.ma.mask_or(data_ma.mask, nmin_mask)
 
     ph_arr = vel_ma * (np.pi / v_ny)
