@@ -55,75 +55,77 @@ def process_pyodim(
         #print("sweep", sweep_idx, "elevation:", dataset[sweep_idx].elevation.values[0])
         # Skip sweeps without PRT information (single PRF)
         prt = dataset[sweep_idx].prt
-        if prt is None:
-            #print("  Skipping sweep - not dual-PRF")
-            continue
+        if prt is not None:
 
-        # Dual-PRF parameters
-        v_ny = dataset[sweep_idx].NI
-        prf_ratio = np.max(prt) / np.min(prt)
-        prf_factor = int(round(1 / (prf_ratio - 1), 0))
+            # Dual-PRF parameters
+            v_ny = dataset[sweep_idx].NI
+            prf_ratio = np.max(prt) / np.min(prt)
+            prf_factor = int(round(1 / (prf_ratio - 1), 0))
 
-        prf_factor_sw = np.zeros_like(prt) + prf_factor
-        prf_factor_sw[np.where(prt == np.max(prt))] += 1
-        prf_factor_sw = np.transpose(
-            np.tile(prf_factor_sw.astype(int), (dataset[sweep_idx].sizes["range"], 1))
-        )
-
-        # primary velocities
-        vel_primary = v_ny / prf_factor
-        # extract velocity sweep
-        vel_data = np.ma.masked_invalid(dataset[sweep_idx][vel_field].values)
-
-        # ERROR DETECTION
-        # Reference velocities at each gate
-
-        vref_det = _vel_ref(
-            data_ma=vel_data,
-            kernel=kernel_det,
-            v_ny=v_ny,
-            mask=None,
-            min_valid=min_valid_det,
-        )
-
-        # Calculate difference in phase space
-        ph_obs = vel_data * (np.pi / v_ny)
-        ph_ref = vref_det * (np.pi / v_ny)
-        ph_diff = ph_obs - ph_ref
-        diff_ma = (v_ny / np.pi) * np.ma.arctan2(np.ma.sin(ph_diff), np.ma.cos(ph_diff))
-
-        # Outlier mask
-        err_mask = np.zeros(diff_ma.shape)
-        err_mask[np.ma.abs(diff_ma) > (max_dev*vel_primary)] = 1
-        err_mask[diff_ma.mask] = 0
-
-        if two_step:
-            vref_cor = _vel_ref(
-                data_ma=vel_data,
-                kernel=kernel_cor,
-                v_ny=v_ny,
-                mask=err_mask.astype(bool),
-                min_valid=min_valid_cor,
+            prf_factor_sw = np.zeros_like(prt) + prf_factor
+            prf_factor_sw[np.where(prt == np.max(prt))] += 1
+            prf_factor_sw = np.transpose(
+                np.tile(prf_factor_sw.astype(int), (dataset[sweep_idx].sizes["range"], 1))
             )
 
+            # primary velocities
+            vel_primary = v_ny / prf_factor
+            # extract velocity sweep
+            vel_data = np.ma.masked_invalid(dataset[sweep_idx][vel_field].values)
+
+            # ERROR DETECTION
+            # Reference velocities at each gate
+
+            vref_det = _vel_ref(
+                data_ma=vel_data,
+                kernel=kernel_det,
+                v_ny=v_ny,
+                mask=None,
+                min_valid=min_valid_det,
+            )
+
+            # Calculate difference in phase space
+            ph_obs = vel_data * (np.pi / v_ny)
+            ph_ref = vref_det * (np.pi / v_ny)
+            ph_diff = ph_obs - ph_ref
+            diff_ma = (v_ny / np.pi) * np.ma.arctan2(np.ma.sin(ph_diff), np.ma.cos(ph_diff))
+
+            # Outlier mask
+            err_mask = np.zeros(diff_ma.shape)
+            err_mask[np.ma.abs(diff_ma) > (max_dev*vel_primary)] = 1
+            err_mask[diff_ma.mask] = 0
+
+            if two_step:
+                vref_cor = _vel_ref(
+                    data_ma=vel_data,
+                    kernel=kernel_cor,
+                    v_ny=v_ny,
+                    mask=err_mask.astype(bool),
+                    min_valid=min_valid_cor,
+                )
+
+            else:
+                vref_cor = vref_det
+
+            # ERROR CORRECTION
+            # Unwrap number and corrected velocity field
+            unwrap_field = _dualprf_error_unwrap(
+                data_ma=vel_data,
+                ref_ma=vref_cor,
+                err_mask=err_mask,
+                pvel_arr=vel_primary,
+                prf_arr=prf_factor_sw,
+            )
+
+            # Correct velocity field
+            vel_data_corrected = vel_data + 2 * unwrap_field * vel_primary
+
+            # Fold velocity values into Nyquist interval
+            vel_data_corrected_folded = fold_circular(data_ma=vel_data_corrected, mod=v_ny)
+
         else:
-            vref_cor = vref_det
-
-        # ERROR CORRECTION
-        # Unwrap number and corrected velocity field
-        unwrap_field = _dualprf_error_unwrap(
-            data_ma=vel_data,
-            ref_ma=vref_cor,
-            err_mask=err_mask,
-            pvel_arr=vel_primary,
-            prf_arr=prf_factor_sw,
-        )
-
-        # Correct velocity field
-        vel_data_corrected = vel_data + 2 * unwrap_field * vel_primary
-
-        # Fold velocity values into Nyquist interval
-        vel_data_corrected_folded = fold_circular(data_ma=vel_data_corrected, mod=v_ny)
+            #load the data without changes
+            vel_data_corrected_folded = np.ma.masked_invalid(dataset[sweep_idx][vel_field].values)
 
         # add field
         dataset[sweep_idx] = dataset[sweep_idx].merge(
