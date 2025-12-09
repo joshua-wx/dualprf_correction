@@ -49,9 +49,9 @@ def process_pyodim(
         Output (corrected) velocity field name
 
     """
-    n_sweeps = len(dataset) - 1
+    n_sweeps = len(dataset)
 
-    for sweep_idx in reversed(list(range(n_sweeps))):
+    for sweep_idx in range(n_sweeps):
         #print("sweep", sweep_idx, "elevation:", dataset[sweep_idx].elevation.values[0])
         # Skip sweeps without PRT information (single PRF)
         prt = dataset[sweep_idx].prt
